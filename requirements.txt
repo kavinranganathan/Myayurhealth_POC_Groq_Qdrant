@@ -2,4 +2,5 @@ toml
 qdrant-client
 sentence-transformers
 phi
+phi.agent
 groq
