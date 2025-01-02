@@ -198,20 +198,23 @@ def load_config():
         "QDRANT_API_KEY": ""
     }
     
-    try:
-        with open("secrets.toml", "r") as f:
-            toml_config = toml.load(f)
-            config.update(toml_config)
-    except FileNotFoundError:
-        st.warning(f"""secrets.toml not found. Using default or environment variables.
-        If you continue to experience issues, please contact our support team:
-        Email: {SUPPORT_EMAIL}
-        Phone: {SUPPORT_PHONE}""")
-    
+    # Load from environment variables first
     for key in config:
         env_value = os.getenv(key)
         if env_value:
             config[key] = env_value
+    
+    # Only try to load from secrets.toml if the environment variables are missing
+    if not config["QDRANT_URL"] or not config["QDRANT_API_KEY"]:
+        try:
+            with open("secrets.toml", "r") as f:
+                toml_config = toml.load(f)
+                config.update(toml_config)
+        except FileNotFoundError:
+            st.warning(f"""secrets.toml not found and environment variables are missing. 
+            If you continue to experience issues, please contact our support team:
+            Email: {SUPPORT_EMAIL}
+            Phone: {SUPPORT_PHONE}""")
     
     return config
 
