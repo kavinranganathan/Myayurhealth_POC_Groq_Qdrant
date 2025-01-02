@@ -73,7 +73,7 @@ class AyurvedaExpertSystem:
             api_key=config.get("QDRANT_API_KEY")
         )
         self.model = Agent(
-            model=Groq(id="llama-3.3-70b-versatile"),
+            model=Groq(id="llama-3.3-70b-versatile", api_key=config.get("GROQ_API_KEY")),
             stream=True,
             description="Expert Ayurvedic healthcare assistant",
             instructions=[
@@ -109,17 +109,13 @@ class AyurvedaExpertSystem:
         return response, doctor_docs
 
     def process_health_query(self, query: str) -> Tuple[str, List[DocumentResponse]]:
-        # First search for condition-specific information
         condition_docs = self.vector_db.search(query)
-        
-        # Then search for relevant doctors
         doctor_docs = self.vector_db.search(f"doctor treating {query}")
         doctor_docs = [doc for doc in doctor_docs if doc.is_doctor_info]
         
         all_docs = condition_docs + doctor_docs
         
         if not all_docs:
-            # Generate a general response if no specific documentation is found
             response = self.model.run(f"""
             Provide information about how Ayurveda approaches treating {query}. 
             Include:
@@ -134,7 +130,6 @@ class AyurvedaExpertSystem:
             """).content
             return response, []
         
-        # Combine documented information with doctor recommendations
         context = "\n".join([doc.content for doc in all_docs])
         response = self.model.run(f"""
         Based on the following information from our platform, provide a comprehensive response about {query}:
@@ -156,15 +151,11 @@ class AyurvedaExpertSystem:
         return response, all_docs
 
     def process_query(self, query: str) -> Tuple[str, List[DocumentResponse]]:
-        # Check if query is about doctors
         if any(keyword in query.lower() for keyword in ['doctor', 'practitioner', 'physician', 'vaidya']):
             return self.process_doctor_query(query)
-        
-        # Check if query is about health conditions
         elif any(keyword in query.lower() for keyword in ['treat', 'cure', 'healing', 'medicine', 'therapy', 'disease', 'condition', 'problem', 'pain']):
             return self.process_health_query(query)
         
-        # General query
         docs = self.vector_db.search(query)
         if not docs:
             response = self.model.run(f"""
@@ -195,7 +186,8 @@ class AyurvedaExpertSystem:
 def load_config():
     config = {
         "QDRANT_URL": "http://localhost:6333",
-        "QDRANT_API_KEY": ""
+        "QDRANT_API_KEY": "",
+        "GROQ_API_KEY": ""  # Added GROQ_API_KEY here
     }
     
     try:
@@ -232,11 +224,9 @@ def main():
         with st.spinner("Processing your query..."):
             response, docs = expert_system.process_query(query)
             
-            # Display main response
             st.markdown("### Response")
             st.write(response)
             
-            # Display source documents if available
             if docs:
                 st.markdown("### Supporting Information")
                 for idx, doc in enumerate(docs, 1):
@@ -246,7 +236,6 @@ def main():
                             st.markdown("**Metadata:**")
                             st.json(doc.metadata)
     
-    # Add contact information footer
     st.markdown("---")
     st.markdown(f"""
     ### Need Help?
