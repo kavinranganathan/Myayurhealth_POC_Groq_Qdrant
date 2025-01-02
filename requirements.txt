@@ -1,6 +1,5 @@
 toml
 qdrant-client
 sentence-transformers
-phi
-phi.agent
+phidata
 groq
